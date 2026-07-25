@@ -1,0 +1,59 @@
+version: "3.9"
+services:
+  # ---- API FastAPI ----
+  api:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://stageflow:secret@db:5432/stageflow"
+      SECRET_KEY: "${SECRET_KEY}"
+      DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # ---- Base de données PostgreSQL ----
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: stageflow
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: stageflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stageflow -d stageflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+
+  # ---- Migrations (run-once) ----
+  migrations:
+    build:
+      context: .
+      target: production
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://stageflow:secret@db:5432/stageflow"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge
