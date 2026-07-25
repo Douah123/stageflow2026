@@ -62,7 +62,24 @@ async def update_offer(
     return offre_maj
 
 
-@router.patch("/{offre_id}/submit", response_model=OffreResponse)
+@router.patch(
+    "/{offre_id}/submit",
+    response_model=OffreResponse,
+    summary="Soumettre une offre pour validation",
+    description=(
+        "Réservé à l'entreprise propriétaire de l'offre. Fait "
+        "passer l'offre de `draft` à `submitted`, uniquement si "
+        "titre, mission et compétences sont renseignés."
+    ),
+    responses={
+        400: {
+            "description": "Offre déjà soumise, ou incomplète "
+            "(titre/mission/compétences manquants)"
+        },
+        404: {"description": "Offre introuvable ou n'appartenant pas "
+              "à l'entreprise authentifiée"},
+    },
+)
 async def submit_offer(offre: OffrePossedee, db: DBSession):
     if offre.statut != "draft":
         raise HTTPException(
@@ -81,7 +98,23 @@ async def submit_offer(offre: OffrePossedee, db: DBSession):
     return offre
 
 
-@router.patch("/{offre_id}/review", response_model=OffreResponse)
+@router.patch(
+    "/{offre_id}/review",
+    response_model=OffreResponse,
+    summary="Valider ou refuser une offre soumise",
+    description=(
+        "Réservé au `program_manager`. Fait passer une offre "
+        "`submitted` vers `published` ou `rejected` selon la "
+        "décision."
+    ),
+    responses={
+        403: {"description": "Réservé au rôle program_manager"},
+        404: {"description": "Offre introuvable"},
+        400: {
+            "description": "L'offre n'est pas au statut `submitted`"
+        },
+    },
+)
 async def review_offer(
     offre_id: int,
     data: OffreReview,

@@ -23,7 +23,25 @@ router = APIRouter(prefix="/auth", tags=["Authentification"])
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-@router.post("/register", status_code=201)
+@router.post(
+    "/register",
+    status_code=201,
+    summary="Créer un compte",
+    description=(
+        "Inscription publique, réservée aux rôles `student` et "
+        "`company` (le rôle `admin` ne peut pas être créé via cette "
+        "route)."
+    ),
+    responses={
+        409: {
+            "description": "Email ou nom d'utilisateur déjà utilisé"
+        },
+        422: {
+            "description": "Données invalides (mot de passe trop "
+            "faible, rôle non autorisé, etc.)"
+        },
+    },
+)
 async def register(data: UserRegister, db: DBSession):
     """Inscription d'un nouvel utilisateur."""
     repo = UserRepository(db)
@@ -49,7 +67,22 @@ async def register(data: UserRegister, db: DBSession):
     return {"message": "Compte créé avec succès", "user_id": user.id}
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="Se connecter",
+    description=(
+        "Authentifie un utilisateur via username/password (format "
+        "OAuth2 password flow) et renvoie un access token et un "
+        "refresh token JWT."
+    ),
+    responses={
+        401: {
+            "description": "Nom d'utilisateur ou mot de passe incorrect"
+        },
+        400: {"description": "Compte désactivé"},
+    },
+)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: DBSession,
@@ -80,7 +113,21 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=Token)
+@router.post(
+    "/refresh",
+    response_model=Token,
+    summary="Renouveler l'access token",
+    description=(
+        "Échange un refresh token valide contre une nouvelle paire "
+        "access/refresh token, sans redemander les identifiants."
+    ),
+    responses={
+        401: {
+            "description": "Refresh token invalide, expiré, ou "
+            "utilisateur introuvable/inactif"
+        },
+    },
+)
 async def refresh(data: TokenRefresh, db: DBSession):
     """Renouveler un token d'accès via le refresh token."""
     payload = decode_token(data.refresh_token)

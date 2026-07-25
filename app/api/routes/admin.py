@@ -12,13 +12,36 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("/users", response_model=list[UserResponse])
+@router.get(
+    "/users",
+    response_model=list[UserResponse],
+    summary="Lister les utilisateurs",
+    description="Réservé au rôle `admin`.",
+    responses={403: {"description": "Réservé au rôle admin"}},
+)
 async def list_users(admin: CurrentAdmin, db: DBSession):
     repo = UserRepository(db)
     return await repo.get_all()
 
 
-@router.patch("/users/{user_id}", response_model=UserResponse)
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    summary="Modifier le rôle ou l'activation d'un compte",
+    description=(
+        "Réservé au rôle `admin`. Permet de changer le rôle "
+        "(`role_id`) et/ou de désactiver un compte (`is_active`). "
+        "L'action est tracée dans les logs applicatifs."
+    ),
+    responses={
+        403: {"description": "Réservé au rôle admin"},
+        404: {"description": "Utilisateur introuvable"},
+        400: {
+            "description": "Aucune modification fournie, ou "
+            "`role_id` invalide"
+        },
+    },
+)
 async def update_user(
     user_id: int,
     data: UserUpdate,

@@ -24,6 +24,19 @@ router = APIRouter(tags=["Candidatures"])
     "/offres/{offre_id}/candidatures",
     response_model=CandidatureResponse,
     status_code=201,
+    summary="Postuler à une offre",
+    description=(
+        "Réservé au rôle `student`. Crée une candidature `pending` "
+        "sur une offre publiée. Refusée si l'étudiant a déjà une "
+        "candidature active sur cette offre."
+    ),
+    responses={
+        403: {"description": "Réservé au rôle student"},
+        404: {"description": "Offre introuvable ou non publiée"},
+        400: {
+            "description": "Candidature déjà active sur cette offre"
+        },
+    },
 )
 async def apply(
     offre_id: int, etudiant: CurrentStudent, db: DBSession
@@ -76,6 +89,12 @@ async def offer_candidatures(
 @router.patch(
     "/candidatures/{candidature_id}/decision",
     response_model=CandidatureResponse,
+    summary="Accepter ou refuser une candidature",
+    description="Réservé au `program_manager`.",
+    responses={
+        403: {"description": "Réservé au rôle program_manager"},
+        404: {"description": "Candidature introuvable"},
+    },
 )
 async def decide_candidature(
     candidature_id: int,
@@ -92,7 +111,25 @@ async def decide_candidature(
     return candidature
 
 
-@router.delete("/candidatures/{candidature_id}", status_code=204)
+@router.delete(
+    "/candidatures/{candidature_id}",
+    status_code=204,
+    summary="Retirer sa candidature",
+    description=(
+        "Réservé à l'étudiant propriétaire de la candidature. "
+        "Impossible si elle a déjà été acceptée."
+    ),
+    responses={
+        404: {
+            "description": "Candidature introuvable ou n'appartenant "
+            "pas à l'étudiant authentifié"
+        },
+        400: {
+            "description": "La candidature est déjà acceptée, elle "
+            "ne peut plus être retirée"
+        },
+    },
+)
 async def withdraw_candidature(
     candidature: CandidaturePossedee, db: DBSession
 ):
