@@ -126,6 +126,20 @@ async def student_client(_db_override, db_session_with_roles):
 
 
 @pytest_asyncio.fixture
+async def student_client_2(_db_override, db_session_with_roles):
+    """Deuxième étudiant, pour les tests d'isolation."""
+    ac = await _authenticated_client(
+        db_session_with_roles,
+        "etudiant_test_2",
+        "etudiant2@test.com",
+        "pass1234",
+        "student",
+    )
+    yield ac
+    await ac.aclose()
+
+
+@pytest_asyncio.fixture
 async def company_client(_db_override, db_session_with_roles):
     ac = await _authenticated_client(
         db_session_with_roles,

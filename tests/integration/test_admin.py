@@ -35,3 +35,40 @@ class TestAdminPermissions:
         )
         assert resp.status_code == 200
         assert resp.json()["role"]["nom"] == "company"
+
+    async def test_update_user_inexistant_404(
+        self, admin_client: AsyncClient
+    ):
+        resp = await admin_client.patch(
+            "/admin/users/999999",
+            json={"is_active": False},
+        )
+        assert resp.status_code == 404
+
+    async def test_update_user_aucune_modification_400(
+        self,
+        admin_client: AsyncClient,
+        student_client: AsyncClient,
+    ):
+        me_resp = await student_client.get("/users/me")
+        user_id = me_resp.json()["id"]
+
+        resp = await admin_client.patch(
+            f"/admin/users/{user_id}",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    async def test_update_user_role_invalide_400(
+        self,
+        admin_client: AsyncClient,
+        student_client: AsyncClient,
+    ):
+        me_resp = await student_client.get("/users/me")
+        user_id = me_resp.json()["id"]
+
+        resp = await admin_client.patch(
+            f"/admin/users/{user_id}",
+            json={"role_id": 999999},
+        )
+        assert resp.status_code == 400

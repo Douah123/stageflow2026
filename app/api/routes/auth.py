@@ -90,7 +90,7 @@ async def refresh(data: TokenRefresh, db: DBSession):
     user_id = payload["sub"]
     repo = UserRepository(db)
     user = await repo.get(int(user_id))
-    if not user or not user.est_actif:
+    if not user or not user.is_active:
         raise HTTPException(401, "Utilisateur introuvable ou inactif")
 
     new_access = create_access_token(subject=user.id)
